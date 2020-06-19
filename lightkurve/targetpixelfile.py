@@ -541,7 +541,7 @@ class TargetPixelFile(object):
         # Calculate the median image
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
-            median_image = np.func(self.flux, axis=0)
+            median_image = func(self.flux, axis=0)
         vals = median_image[np.isfinite(median_image)].flatten()
         # Calculate the theshold value in flux units
         mad_cut = (1.4826 * MAD(vals) * threshold) + func(median_image)
