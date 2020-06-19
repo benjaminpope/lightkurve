@@ -494,7 +494,7 @@ class TargetPixelFile(object):
         self._last_aperture_mask = aperture_mask
         return aperture_mask
 
-    def create_threshold_mask(self, threshold=3, reference_pixel='center'):
+    def create_threshold_mask(self, threshold=3, method='median', reference_pixel='center'):
         """Returns an aperture mask creating using the thresholding method.
 
         This method will identify the pixels in the TargetPixelFile which show
@@ -515,6 +515,8 @@ class TargetPixelFile(object):
         threshold : float
             A value for the number of sigma by which a pixel needs to be
             brighter than the median flux to be included in the aperture mask.
+        method: 'median' or 'max'
+            Do you use np.nanmedian or np.nanmax? 
         reference_pixel: (int, int) tuple, 'center', or None
             (col, row) pixel coordinate closest to the desired region.
             For example, use `reference_pixel=(0,0)` to select the region
@@ -528,15 +530,21 @@ class TargetPixelFile(object):
             2D boolean numpy array containing `True` for pixels above the
             threshold.
         """
+        if method == 'median':
+            func = np.nanmedian
+        elif method == 'max':
+            func = np.nanmax
+        else: # in case you mess up, just make it default
+            func = np.nanmedian
         if reference_pixel == 'center':
             reference_pixel = (self.shape[2] / 2, self.shape[1] / 2)
         # Calculate the median image
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
-            median_image = np.nanmedian(self.flux, axis=0)
+            median_image = np.func(self.flux, axis=0)
         vals = median_image[np.isfinite(median_image)].flatten()
         # Calculate the theshold value in flux units
-        mad_cut = (1.4826 * MAD(vals) * threshold) + np.nanmedian(median_image)
+        mad_cut = (1.4826 * MAD(vals) * threshold) + func(median_image)
         # Create a mask containing the pixels above the threshold flux
         threshold_mask = np.nan_to_num(median_image) > mad_cut
         if (reference_pixel is None) or (not threshold_mask.any()):
